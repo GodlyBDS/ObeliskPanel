@@ -13,6 +13,7 @@ Install, configure, back up, restart and watch your ARK servers from one window.
 ![ASE](https://img.shields.io/badge/ARK-Survival%20Evolved-7CD96A?style=flat-square)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet&logoColor=white)
 ![Price](https://img.shields.io/badge/price-free-00D9CE?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)
 
 **[⬇ Download ObeliskPanel 1.0.0 (Windows, 2 MB)](../../raw/main/release/ObeliskPanel-1.0.0-win-x64.zip)**
 
@@ -184,3 +185,9 @@ That creates `release\ObeliskPanel-1.0.0-win-x64.zip`. Inside, `ObeliskPanel.exe
 I run my own ARK servers, and I wanted a proper tool for it. The managers out there either lock basic stuff like clusters, backups, restart schedules or Discord messages behind a paid tier, or they cost more than the game itself. For a tool that mostly starts a server and edits a couple of INI files, I find those prices honestly outrageous.
 
 So I built my own and I'm giving it away. Everything is in here, and there's nothing to unlock. If it saves you some money or some headaches, that's all I wanted.
+
+---
+
+## License
+
+MIT – do whatever you want with it, just keep the copyright notice. See [LICENSE](LICENSE).
