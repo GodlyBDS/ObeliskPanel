@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -165,6 +166,8 @@ public partial class MainWindow : Window
         UpdateTitle();
         ShowPage();
         ModsHost.Content = new ModsPanel(p, _s, () => _ctx!, OnProfileChanged, Log, this);
+        _locked = false;
+        ApplyLock(force: true);
         RefreshAutomationPages();
         PlayersText.Text = "–";
         UpdateStatus();
@@ -190,6 +193,54 @@ public partial class MainWindow : Window
             "Config Files" => ConfigFilesPage(Sel),
             _ => SettingsUi.BuildPage(_ctx, SettingDefs.All.Where(d => d.Page == page && d.AppliesTo(Sel.Game)), ShowPage),
         };
+        if (_locked && PageHost.Content is UIElement el) Lock(el);
+    }
+
+    bool _locked;
+
+    void ApplyLock(bool force = false)
+    {
+        var locked = Sel != null && StateOf(Sel) != ServerState.Stopped;
+        LockBanner.Visibility = locked ? Visibility.Visible : Visibility.Collapsed;
+        if (locked != _locked || force)
+        {
+            var was = _locked;
+            _locked = locked;
+            if (was && !locked && Sel != null && _ctx != null)
+            {
+                _ctx = new IniContext(Sel, () => _launcher.IsRunning(Sel), Log);
+                ShowPage();
+                var p = Sel;
+                ModsHost.Content = new ModsPanel(p, _s, () => _ctx!, OnProfileChanged, Log, this);
+            }
+        }
+        if (_locked)
+        {
+            if (PageHost.Content is UIElement page) Lock(page);
+            if (ModsHost.Content is UIElement mods) Lock(mods);
+        }
+    }
+
+    static void Lock(UIElement e)
+    {
+        switch (e)
+        {
+            case ScrollViewer sv:
+                if (sv.Content is UIElement c) Lock(c);
+                break;
+            case Panel panel:
+                foreach (UIElement child in panel.Children) Lock(child);
+                break;
+            case Decorator d when d.Child != null:
+                Lock(d.Child);
+                break;
+            case ContentControl cc when cc is not ButtonBase && cc.Content is UIElement inner:
+                Lock(inner);
+                break;
+            default:
+                if (e.IsEnabled) e.IsEnabled = false;
+                break;
+        }
     }
 
     void OnProfileChanged()
@@ -251,6 +302,7 @@ public partial class MainWindow : Window
         PidText.Text = proc != null ? proc.Id.ToString() : "–";
         MapText.Text = $"{Sel.Map.Replace("_WP", "")} · {Sel.Port}";
         ConnectText.Text = PublicIp.Address(_s, Sel);
+        ApplyLock();
         StartBtn.IsEnabled = proc == null;
         StopBtn.IsEnabled = KillBtn.IsEnabled = proc != null;
     }
