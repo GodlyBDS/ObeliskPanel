@@ -162,7 +162,7 @@ All of these are optional and free. They are stored only on your PC, in `%APPDAT
 You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) on Windows.
 
 ```powershell
-git clone https://github.com/<your-name>/ObeliskPanel.git
+git clone https://github.com/GodlyBDS/ObeliskPanel.git
 cd ObeliskPanel
 dotnet build ObeliskPanel.csproj -c Release
 ```
