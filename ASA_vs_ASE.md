@@ -149,7 +149,7 @@ Source: [ark.wiki.gg – Server configuration](https://ark.wiki.gg/wiki/Server_c
 
 ## What ObeliskPanel changed because of this comparison
 
-- `OverrideOfficialDifficulty` default corrected to **0** (0 = override off, 5 = wild creatures up to level 150).
+- `OverrideOfficialDifficulty` default corrected to **0** (0 = override off). Max wild level = 30 × value: 5 = level 150, 10 = level 300. With the override at 0, `DifficultyOffset` 1.0 gives level 120 on The Island / Scorched Earth / Aberration and 150 on Extinction / Genesis.
 - `bAllowPlatformSaddleMultiFloors` and `bDisableStructurePlacementCollision` moved to **Game.ini**.
 - `AllowCryoFridgeOnSaddle` and `bAllowSpeedLeveling` only show in **ASA mode**.
 - "Flyers Ridable In Caves" is the command line option `-ForceAllowCaveFlyers` (both games), now on the Main page instead of an INI entry.
