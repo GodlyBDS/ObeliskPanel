@@ -4,6 +4,8 @@ using System.Windows;
 
 namespace ObeliskPanel;
 
+public enum ServerState { Stopped, Starting, Running, Stopping }
+
 public partial class MainWindow : IBotHost
 {
     sealed class Runtime
@@ -11,6 +13,8 @@ public partial class MainWindow : IBotHost
         public bool WasRunning;
         public bool Announced;
         public bool Busy;
+        public bool Stopping;
+        public bool Probing;
         public DateTime NextPlayersPoll;
         public HashSet<string>? Players;
         public string? PlayerCount;
@@ -28,6 +32,47 @@ public partial class MainWindow : IBotHost
 
     IReadOnlyList<ServerProfile> IBotHost.Servers => _s.Servers;
     bool IBotHost.IsRunning(ServerProfile p) => _launcher.IsRunning(p);
+    ServerState IBotHost.State(ServerProfile p) => StateOf(p);
+
+    public ServerState StateOf(ServerProfile p)
+    {
+        if (!_launcher.IsRunning(p)) return ServerState.Stopped;
+        var rt = Rt(p);
+        if (rt.Stopping) return ServerState.Stopping;
+        return rt.Announced ? ServerState.Running : ServerState.Starting;
+    }
+
+    void MarkRunning(ServerProfile p, Runtime rt)
+    {
+        if (rt.Announced) return;
+        rt.Announced = true;
+        Log($"[{p.Name}] Server is up and accepting connections.");
+        Hook(p, "Running");
+        UpdateStatus();
+    }
+
+    void ProbeStarting()
+    {
+        foreach (var p in _s.Servers)
+        {
+            var rt = Rt(p);
+            if (rt.Announced || rt.Probing || rt.Stopping || !_launcher.IsRunning(p)) continue;
+            rt.Probing = true;
+            _ = Probe(p, rt);
+        }
+    }
+
+    async Task Probe(ServerProfile p, Runtime rt)
+    {
+        try
+        {
+            await RconClient.Send("127.0.0.1", p.RconPort, p.AdminPassword, "ListPlayers");
+            MarkRunning(p, rt);
+        }
+        catch (UnauthorizedAccessException) { MarkRunning(p, rt); }
+        catch { }
+        finally { rt.Probing = false; }
+    }
     string? IBotHost.Players(ServerProfile p) => Rt(p).PlayerCount;
     string IBotHost.Address(ServerProfile p) => PublicIp.Address(_s, p);
     Task IBotHost.Start(ServerProfile p) => Dispatcher.InvokeAsync(() => StartOne(p)).Task;
@@ -84,6 +129,7 @@ public partial class MainWindow : IBotHost
                     rt.WasRunning = running;
                     if (!running)
                     {
+                        rt.Stopping = false;
                         rt.Announced = false; rt.Players = null; rt.PlayerCount = null;
                         Hook(p, "Stopped");
                     }
@@ -111,11 +157,7 @@ public partial class MainWindow : IBotHost
         string r;
         try { r = await RconClient.Send("127.0.0.1", p.RconPort, p.AdminPassword, "ListPlayers"); }
         catch { return; }
-        if (!rt.Announced)
-        {
-            rt.Announced = true;
-            Hook(p, "Running");
-        }
+        MarkRunning(p, rt);
         var now = PlayerLineRx.Matches(r).Select(m => m.Groups[1].Value.Trim()).ToHashSet();
         rt.PlayerCount = $"{now.Count}/{p.MaxPlayers}";
         if (p == Sel) PlayersText.Text = rt.PlayerCount;
@@ -276,6 +318,15 @@ public partial class MainWindow : IBotHost
     public async Task StopAndWait(ServerProfile p)
     {
         if (!_launcher.IsRunning(p)) return;
+        var rt = Rt(p);
+        rt.Stopping = true;
+        UpdateStatus();
+        try { await StopCore(p); }
+        finally { rt.Stopping = false; UpdateStatus(); }
+    }
+
+    async Task StopCore(ServerProfile p)
+    {
         Hook(p, "Stopping");
         if (!string.IsNullOrWhiteSpace(p.RconOnStopping)) await Rcon(p, p.RconOnStopping);
         await Rcon(p, "SaveWorld");

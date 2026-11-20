@@ -37,6 +37,7 @@ public interface IBotHost
 {
     IReadOnlyList<ServerProfile> Servers { get; }
     bool IsRunning(ServerProfile p);
+    ServerState State(ServerProfile p);
     string? Players(ServerProfile p);
     string Address(ServerProfile p);
     Task Start(ServerProfile p);
@@ -119,9 +120,11 @@ public sealed class DiscordBot : IAsyncDisposable
         var sb = new StringBuilder();
         foreach (var p in _host.Servers)
         {
-            var on = _host.IsRunning(p);
-            sb.Append(on ? "🟢 " : "🔴 ").Append($"**{p.Name}** – {p.Map.Replace("_WP", "")} ({p.Game})");
-            if (on) sb.Append($" · {_host.Players(p) ?? "?"} players · `{_host.Address(p)}`");
+            var state = _host.State(p);
+            sb.Append(state switch { ServerState.Running => "🟢 ", ServerState.Stopped => "🔴 ", _ => "🟡 " })
+              .Append($"**{p.Name}** – {p.Map.Replace("_WP", "")} ({p.Game})");
+            if (state == ServerState.Running) sb.Append($" · {_host.Players(p) ?? "?"} players · `{_host.Address(p)}`");
+            else if (state != ServerState.Stopped) sb.Append(state == ServerState.Starting ? " · starting up…" : " · stopping…");
             sb.AppendLine();
         }
         return sb.Length == 0 ? "No servers set up." : sb.ToString();

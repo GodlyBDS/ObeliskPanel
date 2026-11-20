@@ -222,6 +222,7 @@ public partial class MainWindow : Window
     async void Timer_Tick(object? sender, EventArgs e)
     {
         UpdateStatus();
+        if (_autoTick % 3 == 0) ProbeStarting();
         if (++_autoTick % 10 == 0) await AutomationTick();
         if (Sel != null && ++_tick % 15 == 0 && _launcher.IsRunning(Sel))
         {
@@ -234,8 +235,14 @@ public partial class MainWindow : Window
     {
         if (Sel == null) return;
         var proc = _launcher.Find(Sel);
-        var color = proc != null ? Theme.Good : Theme.Bad;
-        StateText.Text = proc != null ? "Running" : "Stopped";
+        var state = StateOf(Sel);
+        var color = state switch { ServerState.Running => Theme.Good, ServerState.Stopped => Theme.Bad, _ => Theme.Warn };
+        StateText.Text = state switch
+        {
+            ServerState.Starting => "Starting up…",
+            ServerState.Stopping => "Stopping…",
+            _ => state.ToString(),
+        };
         StateText.Foreground = color;
         StateDot.Fill = color;
         StateBadge.BorderBrush = color;
