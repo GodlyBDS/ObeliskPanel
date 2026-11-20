@@ -17,3 +17,12 @@ if (Test-Path $zip) { Remove-Item $zip -Force }
 
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip
 Write-Host "Release ready: $zip"
+
+$publish = Join-Path $root "publish"
+try {
+    New-Item -ItemType Directory -Force $publish | Out-Null
+    Copy-Item (Join-Path $stage "*") $publish -Recurse -Force
+    Write-Host "publish\ updated"
+} catch {
+    Write-Warning "publish\ not updated – close ObeliskPanel and run this script again."
+}
