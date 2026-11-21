@@ -24,5 +24,5 @@ try {
     Copy-Item (Join-Path $stage "*") $publish -Recurse -Force
     Write-Host "publish\ updated"
 } catch {
-    Write-Warning "publish\ not updated – close ObeliskPanel and run this script again."
+    Write-Warning "publish\ not updated - close ObeliskPanel and run this script again."
 }
