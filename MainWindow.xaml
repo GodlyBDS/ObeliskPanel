@@ -231,7 +231,7 @@
               <Button x:Name="StartBtn" Content="▶  Start" Click="Start_Click" MinWidth="100" Margin="0,0,6,0" Style="{DynamicResource AccentButtonStyle}"/>
               <Button x:Name="StopBtn" Content="■  Stop" Click="Stop_Click" MinWidth="90" Margin="0,0,6,0"/>
               <Button x:Name="KillBtn" Content="Kill" Click="Kill_Click" Margin="0,0,6,0"/>
-              <Button Content="⟳  Update" Click="Update_Click" Margin="0,0,6,0"/>
+              <Button x:Name="UpdateBtn" Content="⟳  Update" Click="Update_Click" Margin="0,0,6,0"/>
               <Button Content="Launch Command" Click="ShowArgs_Click"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

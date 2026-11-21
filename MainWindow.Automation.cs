@@ -87,6 +87,39 @@ public partial class MainWindow : IBotHost
 
     void Hook(ServerProfile p, string kind, string? text = null) => _ = Webhooks.Send(_s, p, kind, text, Log);
 
+    void ShowUpdateState()
+    {
+        if (Sel == null) return;
+        if (UpdateCheck.UpdateAvailable(Sel, out var installed, out var latest))
+        {
+            UpdateBtn.Content = "⟳  Update available";
+            UpdateBtn.Background = Theme.Bad;
+            UpdateBtn.Foreground = System.Windows.Media.Brushes.White;
+            UpdateBtn.ToolTip = $"A newer server build is out: installed {installed}, latest {latest}. Stop the server and click to update.";
+        }
+        else
+        {
+            UpdateBtn.Content = "⟳  Update";
+            UpdateBtn.ClearValue(BackgroundProperty);
+            UpdateBtn.ClearValue(ForegroundProperty);
+            UpdateBtn.ToolTip = installed == null ? "Install the server files with SteamCMD"
+                : latest == null ? $"Installed build {installed}" : $"Up to date (build {installed})";
+        }
+    }
+
+    async Task CheckForUpdates(bool force = false)
+    {
+        var before = _s.Servers.Where(p => UpdateCheck.UpdateAvailable(p, out _, out _)).ToHashSet();
+        await UpdateCheck.Refresh(_s.Servers.Select(p => p.SteamAppId), force);
+        foreach (var p in _s.Servers.Where(p => !before.Contains(p) && UpdateCheck.UpdateAvailable(p, out _, out _)))
+        {
+            UpdateCheck.UpdateAvailable(p, out var i, out var l);
+            Log($"[{p.Name}] Server update available (build {i} → {l}).");
+            Hook(p, "Updating", $"– a server update is available (build {l})");
+        }
+        ShowUpdateState();
+    }
+
     async void InitAutomation()
     {
         await Task.Delay(500);
@@ -97,6 +130,7 @@ public partial class MainWindow : IBotHost
             await AmazonCerts.CheckAndPrompt(this, Log);
         }
         await PublicIp.Get(_s);
+        await CheckForUpdates(force: true);
         UpdateStatus();
         await RestartBot();
     }
@@ -119,6 +153,7 @@ public partial class MainWindow : IBotHost
         try
         {
             _ = PublicIp.Get(_s);
+            _ = CheckForUpdates();
             var now = DateTime.Now;
             foreach (var p in _s.Servers.ToList())
             {

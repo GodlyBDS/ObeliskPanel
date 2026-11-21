@@ -303,6 +303,7 @@ public partial class MainWindow : Window
         MapText.Text = $"{Sel.Map.Replace("_WP", "")} · {Sel.Port}";
         ConnectText.Text = PublicIp.Address(_s, Sel);
         ApplyLock();
+        ShowUpdateState();
         StartBtn.IsEnabled = proc == null;
         StopBtn.IsEnabled = KillBtn.IsEnabled = proc != null;
     }
