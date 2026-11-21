@@ -15,7 +15,7 @@ Install, configure, back up, restart and watch your ARK servers from one window.
 ![Price](https://img.shields.io/badge/price-free-00D9CE?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)
 
-**[⬇ Download ObeliskPanel 1.0.5 (Windows, 2 MB)](../../raw/main/release/ObeliskPanel-1.0.5-win-x64.zip)**
+**[⬇ Download ObeliskPanel 1.0.6 (Windows, 2 MB)](../../raw/main/release/ObeliskPanel-1.0.6-win-x64.zip)**
 
 <img src="docs/screenshots/main.png" alt="ObeliskPanel main window" width="900">
 
@@ -107,6 +107,7 @@ Also included:
 
 - Update check: the Update button turns red when Steam has a newer server build
 - Live SteamCMD output while installing and updating
+- Reinstall all mods with one click, and removing a server frees its disk space (you can keep the savegame)
 - RCON console with common commands
 - Automatic firewall rules
 - AsaApi / ArkServerApi installer
@@ -118,7 +119,7 @@ Also included:
 
 ## Getting started
 
-1. Download **[ObeliskPanel-1.0.5-win-x64.zip](../../raw/main/release/ObeliskPanel-1.0.5-win-x64.zip)**. The download starts right away.
+1. Download **[ObeliskPanel-1.0.6-win-x64.zip](../../raw/main/release/ObeliskPanel-1.0.6-win-x64.zip)**. The download starts right away.
 2. Unzip it wherever you like and start `ObeliskPanel.exe`. Keep the other files next to it, they're the libraries it needs.
 3. Allow administrator rights when Windows asks. The app works without them, but things like firewall rules won't.
 4. Click **＋ New Server**, pick a map, then hit **Update**. That downloads the server files.
@@ -175,10 +176,10 @@ The exe ends up in `bin\Release\net10.0-windows\`.
 To build the release zip yourself:
 
 ```powershell
-.\build-release.ps1 -Version 1.0.5
+.\build-release.ps1 -Version 1.0.6
 ```
 
-That creates `release\ObeliskPanel-1.0.5-win-x64.zip`. Inside, `ObeliskPanel.exe` sits at the top next to its libraries and a short `README.txt`.
+That creates `release\ObeliskPanel-1.0.6-win-x64.zip`. Inside, `ObeliskPanel.exe` sits at the top next to its libraries and a short `README.txt`.
 
 ---
 

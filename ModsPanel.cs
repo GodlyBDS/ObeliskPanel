@@ -59,6 +59,16 @@ public class ModsPanel : DockPanel
             addBox.Clear();
         });
         Btn(bottom, "Load Names", () => _ = LoadNames(force: true));
+        Btn(bottom, "Reinstall All Mods", () =>
+        {
+            var installed = ServerFiles.InstalledModPaths(_p);
+            if (installed.Count == 0) { _log($"[{_p.Name}] No downloaded mod files found – they will be downloaded on the next start anyway."); return; }
+            if (MessageBox.Show($"Delete the downloaded files of {installed.Count} mod(s)?\n\nThe server downloads them fresh on its next start. " +
+                                "Your mod list, mod settings and savegame are not touched.",
+                                "Reinstall All Mods", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            var n = ServerFiles.DeleteInstalledMods(_p, _log);
+            _log($"[{_p.Name}] Deleted the files of {n} mod(s). They are downloaded again on the next server start.");
+        });
         Btn(bottom, "Remove All", () =>
         {
             if (MessageBox.Show("Remove all mods from this server?", "Mods", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;

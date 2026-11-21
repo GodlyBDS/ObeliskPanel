@@ -396,11 +396,52 @@ public partial class MainWindow : Window
         Log($"{p.Name} created ({p.Map}, Port {p.Port}, RCON {p.RconPort}){what}. Click 'Update' to install the server files.");
     }
 
-    void Remove_Click(object sender, RoutedEventArgs e)
+    async void Remove_Click(object sender, RoutedEventArgs e)
     {
         if (Sel == null) return;
-        if (MessageBox.Show($"Remove profile '{Sel.Name}'? The server files stay on disk.", "Remove", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
-        _s.Servers.Remove(Sel); Save(); _loaded = null; RefreshTabs(ModeServers.FirstOrDefault()); _ = _bot?.RefreshCommands();
+        var p = Sel;
+        if (_launcher.IsRunning(p)) { MessageBox.Show(this, "Stop the server before removing it.", "Remove Server"); return; }
+
+        var hasFiles = ServerFiles.LooksLikeServerFolder(p, out var reason);
+        if (!hasFiles)
+        {
+            if (MessageBox.Show(this, $"Remove the server '{p.Name}'?\n\nNo server files will be deleted: {reason}",
+                    "Remove Server", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            RemoveProfile(p);
+            return;
+        }
+
+        if (MessageBox.Show(this,
+                $"Remove the server '{p.Name}' and delete its server files?\n\n{p.InstallDir}\n\n" +
+                "This frees the disk space used by the server. The cluster folder is not touched.",
+                "Remove Server", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+
+        var keep = MessageBox.Show(this,
+                "Keep the savegame?\n\n" +
+                $"Yes: the world, players, tribes and INI settings are moved to\n{ServerFiles.KeptSavesDir(_s, p.Game)}\nand everything else is deleted.\n\n" +
+                "No: everything is deleted, including the savegame. This cannot be undone.",
+                "Remove Server", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.Yes);
+        if (keep == MessageBoxResult.Cancel) return;
+
+        RemoveProfile(p);
+        MainTabs.SelectedIndex = 1;
+        Log($"[{p.Name}] Removing server files…");
+        try
+        {
+            var kept = keep == MessageBoxResult.Yes ? await Task.Run(() => ServerFiles.MoveSaveAside(p, _s)) : null;
+            await Task.Run(() => ServerFiles.DeleteServer(p));
+            Log(kept != null
+                ? $"[{p.Name}] Server files deleted. Savegame kept in {kept}"
+                : $"[{p.Name}] Server files deleted" + (keep == MessageBoxResult.Yes ? " (there was no savegame to keep)." : ", including the savegame."));
+        }
+        catch (Exception ex) { Log($"[{p.Name}] Deleting the server files failed: {ex.Message}"); }
+    }
+
+    void RemoveProfile(ServerProfile p)
+    {
+        _s.Servers.Remove(p); Save(); _loaded = null;
+        RefreshTabs(ModeServers.FirstOrDefault());
+        _ = _bot?.RefreshCommands();
     }
 
     async void Update_Click(object sender, RoutedEventArgs e)
