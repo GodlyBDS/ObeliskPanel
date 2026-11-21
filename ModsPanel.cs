@@ -102,6 +102,19 @@ public class ModsPanel : DockPanel
         parent.Children.Add(b);
     }
 
+    string? _moved;
+
+    void Move(int from, int to)
+    {
+        to = Math.Clamp(to, 0, _ids.Count - 1);
+        if (from == to) return;
+        var id = _ids[from];
+        _ids.RemoveAt(from);
+        _ids.Insert(to, id);
+        _moved = id;
+        Commit();
+    }
+
     void Commit()
     {
         _p.Mods = string.Join(",", _ids);
@@ -125,36 +138,61 @@ public class ModsPanel : DockPanel
             if (q != "" && !id.Contains(q) && !name.Contains(q, StringComparison.OrdinalIgnoreCase)) continue;
             int idx = i;
 
-            var g = new Grid { Margin = new Thickness(4, 1, 4, 1), Background = i % 2 == 0 ? Brushes.Transparent : Theme.RowAlt };
+            var baseBrush = i % 2 == 0 ? Brushes.Transparent : Theme.RowAlt;
+            var g = new Grid { Margin = new Thickness(4, 1, 4, 1), Background = baseBrush };
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(42) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Asa ? 90 : 120) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             g.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var idT = new TextBlock { Text = id, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) };
+            var posT = new TextBlock
+            {
+                Text = $"#{i + 1}", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0),
+                FontWeight = FontWeights.Bold, Foreground = Theme.ModeBrush(_p.Game), ToolTip = "Position in the load order",
+            };
+            var idT = new TextBlock { Text = id, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0), Foreground = Theme.Muted };
+            Grid.SetColumn(idT, 1);
             var hasSettings = _s.ModSections.TryGetValue(K(id), out var secs) && secs.Count > 0;
             var cosmetic = Asa && _s.CosmeticMods.Contains(id);
             var nameT = new TextBlock { Text = name + (hasSettings ? "   ⚙" : "") + (cosmetic ? "   ⚠ Custom Cosmetic – not loaded by the server" : ""), VerticalAlignment = VerticalAlignment.Center };
             if (cosmetic) { nameT.Foreground = Theme.Warn; nameT.ToolTip = "Cosmetics only run in the game client. The server would fail its mod install, so ObeliskPanel leaves this mod out of -mods. Remove it with 🗑."; }
-            Grid.SetColumn(nameT, 1);
+            Grid.SetColumn(nameT, 2);
             var btns = new StackPanel { Orientation = Orientation.Horizontal };
-            Grid.SetColumn(btns, 2);
+            Grid.SetColumn(btns, 3);
             Btn(btns, "Settings", () => OpenSettings(id, name));
             if (!Asa) SmallBtn(btns, "↗", () => Process.Start(new ProcessStartInfo(SteamWorkshop.ItemUrl(id)) { UseShellExecute = true }));
-            SmallBtn(btns, "▲", () => { if (idx > 0) { (_ids[idx - 1], _ids[idx]) = (_ids[idx], _ids[idx - 1]); Commit(); } });
-            SmallBtn(btns, "▼", () => { if (idx < _ids.Count - 1) { (_ids[idx + 1], _ids[idx]) = (_ids[idx], _ids[idx + 1]); Commit(); } });
-            SmallBtn(btns, "🗑", () => { _ids.RemoveAt(idx); Commit(); });
-            g.Children.Add(idT); g.Children.Add(nameT); g.Children.Add(btns);
+            SmallBtn(btns, "⤒", () => Move(idx, 0), "Move to the top (loads first)");
+            SmallBtn(btns, "▲", () => Move(idx, idx - 1), "Move up one");
+            SmallBtn(btns, "▼", () => Move(idx, idx + 1), "Move down one");
+            SmallBtn(btns, "⤓", () => Move(idx, _ids.Count - 1), "Move to the bottom (loads last)");
+            SmallBtn(btns, "🗑", () => { _ids.RemoveAt(idx); Commit(); }, "Remove from this server");
+            g.Children.Add(posT); g.Children.Add(idT); g.Children.Add(nameT); g.Children.Add(btns);
+            if (id == _moved)
+            {
+                var accent = ((SolidColorBrush)Theme.ModeBrush(_p.Game)).Color;
+                var target = baseBrush is SolidColorBrush sb ? sb.Color : Colors.Transparent;
+                var flash = new SolidColorBrush(Color.FromArgb(0x88, accent.R, accent.G, accent.B));
+                g.Background = flash;
+                var row = g;
+                row.Loaded += (_, _) =>
+                {
+                    row.BringIntoView();
+                    flash.BeginAnimation(SolidColorBrush.ColorProperty,
+                        new System.Windows.Media.Animation.ColorAnimation(target, TimeSpan.FromSeconds(1.8)) { BeginTime = TimeSpan.FromSeconds(0.6) });
+                };
+            }
             g.MouseLeftButtonDown += (_, e) => { if (e.ClickCount == 2) OpenSettings(id, name); };
             _rows.Children.Add(g);
         }
-        _count.Text = $"   Mods: {_ids.Count}   (order = load order)";
+        _moved = null;
+        _count.Text = $"   Mods: {_ids.Count}   (#1 loads first" + (string.IsNullOrWhiteSpace(_p.MapModId) ? ")" : ", the mod map always loads before #1)");
     }
 
     static bool IsCosmetic(CfMod m) =>
         m.Categories.Split(',', StringSplitOptions.TrimEntries).Any(c => c.Equals("Custom Cosmetics", StringComparison.OrdinalIgnoreCase));
 
-    static void SmallBtn(Panel parent, string text, Action a)
+    static void SmallBtn(Panel parent, string text, Action a, string? tip = null)
     {
-        var b = new Button { Content = text, MinWidth = 28, Padding = new Thickness(4, 1, 4, 1), Margin = new Thickness(0, 2, 3, 2) };
+        var b = new Button { Content = text, MinWidth = 28, Padding = new Thickness(4, 1, 4, 1), Margin = new Thickness(0, 2, 3, 2), ToolTip = tip };
         b.Click += (_, _) => a();
         parent.Children.Add(b);
     }
